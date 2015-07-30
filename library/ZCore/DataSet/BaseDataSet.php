@@ -15,7 +15,7 @@ use ZCore\Resource\PaginatorResource;
 class BaseDataSet
 extends BaseResource {
     
-    protected function getListResourcePrototype($resultSet = null) {
+    protected function getCollectionResourcePrototype($resultSet = null) {
         return null;
     }
 
@@ -28,7 +28,7 @@ extends BaseResource {
         $router = $this->getOption('router', array());
         
         $entityResource = $resultSet instanceof Paginator
-                ? $this->getListResourcePrototype($resultSet)
+                ? $this->getCollectionResourcePrototype($resultSet)
                 : $this->getItemResourcePrototype($resultSet);
         
         $entityResource->setOption($options);

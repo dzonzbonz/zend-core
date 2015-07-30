@@ -16,7 +16,8 @@ use ZCore\Resource\BaseResource;
  *
  * @author dzonz
  */
-class AbstractApiController extends AbstractRestfulController {
+class AbstractApiController 
+extends AbstractRestfulController {
 
     const CONTENT_TYPE_FORM = 'form';
     
@@ -44,38 +45,73 @@ class AbstractApiController extends AbstractRestfulController {
     }
 
     public function onDispatch(\Zend\Mvc\MvcEvent $e) {
-        BaseResource::setGlobalRouter($this->getRouter());
-        
-        $response = $e->getResponse();
+        try {
+            
+            $this->onDispatchRouter();
 
-        if ($response instanceof \Zend\Http\AbstractMessage) {
-            $header = \Zend\Http\Header\ContentType::fromString("Content-Type: application/json");
-            $response->getHeaders()->addHeader($header);
+            $response = $e->getResponse();
+
+            if ($response instanceof \Zend\Http\AbstractMessage) {
+                $header = \Zend\Http\Header\ContentType::fromString("Content-Type: application/json");
+                $response->getHeaders()->addHeader($header);
+            }
+
+            $this->initService();
+
+            $c = explode("\\", $this->params()->fromRoute('controller'));
+            $controllerName = $c[count($c) - 1];
+
+            $this->requestController = strtolower($controllerName);
+            $this->requestQuery = $this->getRequest()->getQuery()->toArray();
+
+            $returnObject = parent::onDispatch($e);
+
+            if ($returnObject instanceof BaseResource) {
+                $baseResourceData = $returnObject->toArray();
+                $linkedResource = $returnObject->getLinkedResource();
+                $linkedResourceData = array();
+                if (!is_null($linkedResource)) {
+                    $linkedResourceData = array("linked" => $linkedResource->toArray());
+                } 
+                return $this->getResponse()->setContent(json_encode($baseResourceData + $linkedResourceData));
+            } else if (is_array($returnObject)) {
+                return $this->getResponse()->setContent(json_encode($returnObject));
+            } else {
+                return $returnObject;
+            }   
         }
-        
-        $this->initService();
-        
-        $c = explode("\\", $this->params()->fromRoute('controller'));
-        $controllerName = $c[count($c) - 1];
-        
-        $this->requestController = strtolower($controllerName);
-        $this->requestQuery = $this->getRequest()->getQuery()->toArray();
-        
-        $returnObject = parent::onDispatch($e);
-        
-        if ($returnObject instanceof BaseResource) {
-            $baseResourceData = $returnObject->toArray();
-            $linkedResource = $returnObject->getLinkedResource();
-            $linkedResourceData = array();
-            if (!is_null($linkedResource)) {
-                $linkedResourceData = array("linked" => $linkedResource->toArray());
-            } 
-            return $this->getResponse()->setContent(json_encode($baseResourceData + $linkedResourceData));
-        } else if (is_array($returnObject)) {
-            return $this->getResponse()->setContent(json_encode($returnObject));
-        } else {
-            return $returnObject;
-        }            
+        catch (\ZCore\Exception\InvalidInputDataException $ide) {
+            return $this->prepareErrorResponse(
+                'INVALID_INPUT_DATA', 
+                $ide->getInputFilter()->getMessages(), 
+                400
+            );
+        } 
+        catch (\ZCore\Exception\EntryNotFoundException $enf) {
+            return $this->prepareErrorResponse(
+                'ENTRY_NOT_FOUND', 
+                $enf->getMessage(), 
+                404
+            );
+        }
+        catch (\ZCore\Exception\DuplicateEntryException $enf) {
+            return $this->prepareErrorResponse(
+                'DUPLICATE_ENTRY', 
+                $enf->getMessage(), 
+                409
+            );
+        } 
+        catch (\Exception $ex) {
+            return $this->prepareErrorResponse(
+                'UNKNOWN_ERROR', 
+                $ex->getMessage(), 
+                400
+            );
+        }
+    }
+    
+    protected function onDispatchRouter() {
+        BaseResource::setGlobalRouter($this->getRouter());
     }
     
     protected function initService() {
