@@ -30,11 +30,24 @@ extends AbstractApiService {
     
     const SAVE_LIST_VALIDATE_ALL = 'all';
     const SAVE_LIST_VALIDATE_SINGLE = 'single';
+    
+    /**
+     *
+     * @var \Zend\Db\Adapter\Adapter
+     */
+    protected $adapter = null;
+    
     /**
      *
      * @var \ZCore\Mapper\AbstractMapper
      */
     protected $entityMapper;
+    
+    public function __construct(\Zend\Db\Adapter\Adapter $adapter) {
+        parent::__construct();
+        
+        $this->adapter = $adapter;
+    }
     
     /**
      * @returns \ZCore\Form\AbstractForm
@@ -59,9 +72,17 @@ extends AbstractApiService {
     }
     
     /**
+     * 
+     * @return Adapter
+     */
+    public function getAdapter() {
+        return $this->adapter;
+    }
+    
+    /**
      * @return \ZCore\Mapper\AbstractMapper
      */
-    abstract protected function initMapper();
+    abstract protected function instantiateMapper();
     
     /**
      * 
@@ -69,7 +90,7 @@ extends AbstractApiService {
      */
     protected function getMapper() {
         if (!$this->entityMapper) {
-            $this->entityMapper = $this->initMapper();
+            $this->entityMapper = $this->instantiateMapper();
         }
         
         return $this->entityMapper;

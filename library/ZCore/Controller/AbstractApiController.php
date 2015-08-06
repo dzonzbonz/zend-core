@@ -16,7 +16,7 @@ use ZCore\Resource\BaseResource;
  *
  * @author dzonz
  */
-class AbstractApiController 
+abstract class AbstractApiController 
 extends AbstractRestfulController {
 
     const CONTENT_TYPE_FORM = 'form';
@@ -37,16 +37,34 @@ extends AbstractRestfulController {
     
     protected $requestQuery;
     
+    protected $mathcedRouteName;
+    
     public function __construct(AbstractApiService $service) {
+        
         $this->service = $service;
+        
         $this->contentTypes[self::CONTENT_TYPE_FORM] = array(
             'multipart/form-data',
         );
+        
     }
 
+    protected function init() {
+        
+    }
+    
+    /**
+     * 
+     * @return AbstractApiService
+     */
+    protected function getService() {        
+        return $this->service;
+    }
+    
     public function onDispatch(\Zend\Mvc\MvcEvent $e) {
         try {
-            
+            $this->mathcedRouteName = $this->getRouter()->match($this->getRequest())->getMatchedRouteName();
+                    
             $this->onDispatchRouter();
 
             $response = $e->getResponse();
@@ -56,7 +74,7 @@ extends AbstractRestfulController {
                 $response->getHeaders()->addHeader($header);
             }
 
-            $this->initService();
+            $this->init();
 
             $c = explode("\\", $this->params()->fromRoute('controller'));
             $controllerName = $c[count($c) - 1];
@@ -110,12 +128,21 @@ extends AbstractRestfulController {
         }
     }
     
-    protected function onDispatchRouter() {
-        BaseResource::setGlobalRouter($this->getRouter());
+    protected function getDispatchRouterParams() {
+        return array(
+            'router' => array(
+                'name' => $this->mathcedRouteName,
+                'params' => array(
+                    
+                ),
+            )
+        );
     }
     
-    protected function initService() {
-        $this->service->init();
+    protected function onDispatchRouter() {
+        BaseResource::setGlobalRouter($this->getRouter());
+        
+        BaseResource::setGlobalOptions($this->getDispatchRouterParams());
     }
     
     /**
@@ -123,11 +150,12 @@ extends AbstractRestfulController {
      * @return \Zend\Mvc\Router\RouteInterface
      */
     protected function getRouter() {
-        if (!$this->router) {
-            $this->router = $this->service->getServiceLocator()->get('Router');
-        }
-        
-        return $this->router;
+        return $this->getEvent()->getRouter();
+//        if (!$this->router) {
+//            $this->router = $this->getServiceLocator()->get('Router');
+//        }
+//        
+//        return $this->router;
     }
     
     protected function assembleRoute($routeName, array $params = array()) {
@@ -144,10 +172,6 @@ extends AbstractRestfulController {
         return $this->getResponse()
                 ->setStatusCode($httpStatusCode)
                 ->setContent(json_encode($resource->toArray()));
-    }
-    
-    public function init() {
-        $this->service->init();
     }
 
     protected function processBodyContent($request) {

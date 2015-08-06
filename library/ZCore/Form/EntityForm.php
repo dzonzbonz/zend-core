@@ -60,8 +60,6 @@ extends AbstractForm {
             'exclude' => $exclude
         ));
 
-        print_r($newOpts);
-        
         return parent::isValid($newOpts);
     }
 }

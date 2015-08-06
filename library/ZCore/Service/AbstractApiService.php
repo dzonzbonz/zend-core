@@ -10,34 +10,43 @@ namespace ZCore\Service;
 
 use Zend\Db\Adapter\Adapter;
 use Zend\ServiceManager\ServiceLocatorInterface;
+use Zend\ServiceManager\ServiceLocatorAwareInterface;
 /**
  * Description of AbstractApiService
  *
  * @author dzonz
  */
-abstract class AbstractApiService {
+abstract class AbstractApiService 
+implements ServiceLocatorAwareInterface {
     
     /**
      *
      * @var ServiceLocatorInterface 
      */
     protected $serviceLocator;
-        
-    /**
-     *
-     * @var Adapter
-     */
-    protected $adapter;
     
-    public function __construct(ServiceLocatorInterface $serviceLocator) {
-        $this->serviceLocator = $serviceLocator;
+    public function __construct() {
+        
     }
     
     /**
-     * 
+     * Set serviceManager instance
+     *
+     * @param  ServiceLocatorInterface $serviceLocator
+     * @return void
+     */
+    public function setServiceLocator(ServiceLocatorInterface $serviceLocator)
+    {
+        $this->serviceLocator = $serviceLocator;
+    }
+
+    /**
+     * Retrieve serviceManager instance
+     *
      * @return ServiceLocatorInterface
      */
-    public function getServiceLocator() {
+    public function getServiceLocator()
+    {
         return $this->serviceLocator;
     }
     
@@ -49,23 +58,8 @@ abstract class AbstractApiService {
         return $this->serviceLocator->getServiceLocator();
     }
     
-    /**
-     * 
-     * @return Adapter
-     */
-    public function getAdapter() {
-        return $this->adapter;
-    }
-    
     public function init() {
         
-        $this->initAdapter();
-        
     }
     
-    protected function initAdapter() {
-        $config = $this->getServiceLocator()->get('Config');
-        
-        $this->adapter = new Adapter($config['db_master']);
-    }
 }
