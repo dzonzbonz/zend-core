@@ -77,12 +77,16 @@ extends InputFilter {
      * @return \Zend\Validator\AbstractValidator
      */
     protected function getValidatorInstanceByName($name, $validator = 0) {
-        $validatorChain = $this->getValidatorChainByName($name);
-        
-        $validators = $validatorChain->getValidators();
-                
-        $inputFieldValidator = $validators[$validator]['instance'];
-        
-        return $inputFieldValidator;
+        try {
+            $validatorChain = $this->getValidatorChainByName($name);
+
+            $validators = $validatorChain->getValidators();
+
+            $inputFieldValidator = $validators[$validator]['instance'];
+            
+            return $inputFieldValidator;
+        } catch (\Zend\InputFilter\Exception\InvalidArgumentException $ia) {
+            return null;
+        }
     }
 }
